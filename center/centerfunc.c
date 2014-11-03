@@ -131,3 +131,40 @@ int setup_connect() {
 		printf("center: got connection from %s\n", s);
 		return 0;
 }
+/*
+ *receive msg
+ * */
+int recv_msg(char *buf) {
+	int num_bytes;
+
+	num_bytes = recv(new_fd, buf, LINELEN-1, 0);
+	if(num_bytes == -1) {
+		perror("center:recv");
+		return 2;
+	}
+	if(num_bytes == 0) {
+		return 1;
+	}
+
+	buf[num_bytes] = '\0';
+	return 0;
+}
+/*
+ *send msg
+ * */
+int send_msg(char *buf, int num_bytes) {
+
+	if(send(new_fd, buf, num_bytes-1, 0) == -1) {
+		perror("center:send");
+		return 2;
+	}
+	return 0;
+}
+/*
+ *authen
+ *rv: 0 for success, 1 for fail, 2 for not authen_msg
+ * */
+int authen(char *buf) {
+	printf("I will verify msg: %s\n",buf);
+	return 0;
+}

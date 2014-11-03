@@ -12,6 +12,10 @@
 #include <signal.h>
 #include <sys/wait.h>
 
+char authen_msg[LINELEN];
+char authen_res[LINELEN];
+int byte_to_send;
+
 int main(int argc, char *argv[]) {
 	/*read user.txt*/
 	read_user_info();
@@ -49,9 +53,7 @@ int main(int argc, char *argv[]) {
 	/*waiting for connection*/
 	while(1) {
 		int rv;
-		rv = setup_connect();
-
-		if(rv == 2) {
+		if((rv = setup_connect()) == 2) {
 			break;
 			//continue;
 		}
@@ -64,9 +66,33 @@ int main(int argc, char *argv[]) {
 			printf("center: I'm child process:%d to serve you\n", pid);
 			printf("new_fd: %d\n", new_fd);
 
-            //if (send(new_fd, "Hello, world!", 13, 0) == -1)
-            //    perror("send");
-            //close(new_fd);
+			while(1) {
+				/*receive from patient*/
+				if((rv = recv_msg(authen_msg)) == 2) {
+					exit(1);
+				}
+				if(rv == 1) {
+					continue;
+				}
+				printf("center: I recv %d bytes msg\n",(int)strlen(authen_msg));
+				/*authentication*/
+				if((rv = authen(authen_msg)) == 2) {
+					continue;
+				}
+				if(rv == 1) {
+					/*send fail msg*/
+					sprintf(authen_res, "failure");
+					byte_to_send = strlen(authen_res);
+					send_msg(authen_res, byte_to_send);
+				}
+				if(rv == 0) {
+					/*send suc msg*/
+					sprintf(authen_res, "success");
+					byte_to_send = strlen(authen_res);
+					send_msg(authen_res, byte_to_send);
+				}
+			}
+            close(new_fd);
 			exit(0);
 		}
 		/**************************************/
