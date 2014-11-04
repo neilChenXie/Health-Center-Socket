@@ -1,6 +1,4 @@
-/*different patient should change this*/
-#define MY_INFO_FILE "patient1.txt"
-
+#define MY_INFO_FILE "patient2.txt"
 #define MYPORT "63123"
 #define UNAMELEN 20
 #define UPASSLEN 20

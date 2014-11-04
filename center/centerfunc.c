@@ -29,7 +29,27 @@ void *get_in_addr(struct sockaddr *sa) {
 		return &(((struct sockaddr_in6*)sa)->sin6_addr);
 	}
 }
+/*
+ *same_string
+ * */
+int same_string(char *s1, char *s2) {
+	printf("compare %s and %s\n", s1, s2);
+	int i;
+	int len;
+	if(strlen(s1) != strlen(s2)) {
+		fprintf(stderr, "not the same length\n");
+		return 2;
+	}
 
+	len = strlen(s1);
+	for(i = 0; i < len; i++) {
+		if(s1[i] != s2[i]) {
+			fprintf(stderr, "2 string not the same\n");
+			return 2;
+		}
+	}
+	return 0;
+}
 /**********************public functions******************************/
 /*
  *sigchld_handler
@@ -154,7 +174,7 @@ int recv_msg(char *buf) {
  * */
 int send_msg(char *buf, int num_bytes) {
 
-	if(send(new_fd, buf, num_bytes-1, 0) == -1) {
+	if(send(new_fd, buf, num_bytes, 0) == -1) {
 		perror("center:send");
 		return 2;
 	}
@@ -165,6 +185,43 @@ int send_msg(char *buf, int num_bytes) {
  *rv: 0 for success, 1 for fail, 2 for not authen_msg
  * */
 int authen(char *buf) {
-	printf("I will verify msg: %s\n",buf);
-	return 0;
+	//printf("I will verify msg: %s\n",buf);
+	char *sp;
+	char *up;
+	char *pp;
+	int i;
+	/*verify the msg for authen*/
+	sp = strstr(buf,"authenticate");
+	if(sp == NULL) {
+		fprintf(stderr, "this is NOT authenticate message\n");
+		return 2;
+	}
+	if(sp != NULL) {
+		/*get username*/
+		if((up = strchr(sp, ' ')) != NULL) {
+			up++;
+		} else {
+			fprintf(stderr, "there is no username\n");
+			return 2;
+		}
+		/*get password*/
+		pp = strchr(up, ' ');
+		if(pp != NULL) {
+			*pp = '\0';
+			pp++;
+		} else {
+			fprintf(stderr, "there is no password\n");
+			return 2;
+		}
+
+		/*verify the uname and passw*/
+		for(i = 0; i < num_user; i++) {
+			if(same_string(user[i].username, up) == 0) {
+				if(same_string(pass[i].userpass, pp) == 0) {
+					return 0;
+				}
+			}
+		}
+	}
+	return 1;
 }
