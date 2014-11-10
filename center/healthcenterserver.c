@@ -12,19 +12,29 @@
 #include <signal.h>
 #include <sys/wait.h>
 
-char authen_msg[LINELEN];
-char authen_res[LINELEN];
+char buf_recv[LINELEN];
+char buf_send[LINELEN];
 int byte_to_send;
+send_available_t avai_msg;
 
 int main(int argc, char *argv[]) {
+	int rv;
 	/*read user.txt*/
-	read_user_info();
-	/*test*/
-	//int num;
-	//for(num = 0; num < num_user; num++) {
-	//	printf("user%d, username:%s, password:%s\n", num+1, user[num].username, pass[num].userpass);
+	rv = read_user_info();
+	if(rv == 2) {
+		exit(1);
+	}
+	/*read available info*/
+	read_available_info();
+	if(rv == 2) {
+		exit(1);
+	}
+	/******test*********/
+	//int i;
+	//for(i = 0; i < num_slot; i++) {
+	//	printf("index: %d, day: %s, time: %s, doc: %s, port: %d\n",time_slot[i].index,time_slot[i].day,time_slot[i].time,time_slot[i].doc,time_slot[i].port);
 	//}
-	/******/
+	/******************/
 	/*create & bind socket*/
 	if(create_socket() == 2) {
 		fprintf(stderr, "center: failed to create & bind socket\n");
@@ -66,33 +76,76 @@ int main(int argc, char *argv[]) {
 			printf("center: I'm child process:%d to serve you\n", pid);
 			printf("new_fd: %d\n", new_fd);
 
-			while(1) {
-				/*receive from patient*/
-				if((rv = recv_msg(authen_msg)) == 2) {
-					exit(1);
-				}
-				if(rv == 1) {
-					continue;
-				}
-				printf("center: I recv %d bytes msg\n",(int)strlen(authen_msg));
-				/*authentication*/
-				if((rv = authen(authen_msg)) == 2) {
-					continue;
-				}
-				if(rv == 1) {
-					/*send fail msg*/
-					sprintf(authen_res, "failure");
-					byte_to_send = strlen(authen_res);
-					send_msg(authen_res, byte_to_send);
-				}
-				if(rv == 0) {
-					/*send suc msg*/
-					sprintf(authen_res, "success");
-					byte_to_send = strlen(authen_res);
-					send_msg(authen_res, byte_to_send);
-				}
+			/*receive from patient*/
+			memset(buf_recv, 0, sizeof recv_msg);
+			if((rv = recv_msg(buf_recv)) == 2) {
+				exit(1);
 			}
-            close(new_fd);
+			if(rv == 1) {
+				continue;
+			}
+
+			printf("center: I recv %d bytes msg\n",(int)strlen(buf_recv));
+			/*authentication*/
+			if((rv = authen(buf_recv)) == 2) {
+				exit(1);
+			}
+			if(rv == 1) {
+				/*send fail msg*/
+				memset(buf_send, 0, sizeof buf_send);
+				sprintf(buf_send, "failure");
+				byte_to_send = strlen(buf_send);
+				send_msg(buf_send, byte_to_send);
+				exit(1);
+			}
+			if(rv == 0) {
+				/*send suc msg*/
+				memset(buf_send, 0, sizeof buf_send);
+				sprintf(buf_send, "success");
+				byte_to_send = strlen(buf_send);
+
+				printf("center: I will send %d bytes to patient\n", byte_to_send);
+
+				send_msg(buf_send, byte_to_send);
+			}
+			printf(".........center: ready for phase 2...........\n");
+			/*wait for avaliability*/
+			memset(buf_recv, 0, sizeof buf_recv);
+			rv = recv_msg(buf_recv);
+			if(rv == 0) {
+				/*check whether is "available"*/
+				char *ava = "available";
+				rv = same_string(buf_recv, ava);
+			} else {
+				printf("center: received wrong request for available information\n");
+				exit(1);
+			}
+			if(rv == 0) {
+				printf("ready to send available msg to patient\n");
+				/*send available infomation to patient*/
+				/*create msg*/
+				int i;
+				memset(&avai_msg, 0, sizeof avai_msg);
+				avai_msg.num_slot = num_slot;
+				for(i = 0;i < num_slot; i++) {
+					avai_msg.one_avai[i].index = time_slot[i].index;
+					strncpy(avai_msg.one_avai[i].day, time_slot[i].day,strlen(time_slot[i].day)+1);
+					strncpy(avai_msg.one_avai[i].time, time_slot[i].time,strlen(time_slot[i].time)+1);
+					printf("I'm sending: index:%d, day: %s, time: %s\n",avai_msg.one_avai[i].index, avai_msg.one_avai[i].day, avai_msg.one_avai[i].time);
+				}
+
+				/*send to patient*/
+				send_msg((char *)&avai_msg, sizeof avai_msg);
+
+				/*check the available file again*/
+				/*mark the rev in the file & close imm*/
+				/*send not ava now msg*/
+				/*loop back*/
+			} else {
+				printf("center: received wrong request for available information\n");
+				exit(1);
+			}
+			close(new_fd);
 			exit(0);
 		}
 		/**************************************/

@@ -14,8 +14,10 @@
 
 int center_sockfd;
 int num_user;
+int num_slot;
 uname user[MAXUSER];
 upass pass[MAXUSER];
+available_t time_slot[MAXSLOT];
 int new_fd;
 
 /**********************private functions*****************************/
@@ -28,6 +30,13 @@ void *get_in_addr(struct sockaddr *sa) {
 	} else {
 		return &(((struct sockaddr_in6*)sa)->sin6_addr);
 	}
+}
+/**********************public functions******************************/
+/*
+ *sigchld_handler
+ * */
+void sigchld_handler(int s) {
+	while(waitpid(-1, NULL, WNOHANG) > 0);
 }
 /*
  *same_string
@@ -50,14 +59,7 @@ int same_string(char *s1, char *s2) {
 	}
 	return 0;
 }
-/**********************public functions******************************/
-/*
- *sigchld_handler
- * */
-void sigchld_handler(int s) {
-	while(waitpid(-1, NULL, WNOHANG) > 0);
-}
-/*read file
+/*read user.txt file
  *rv: 0 for success, 2 for fail
  * */
 int read_user_info() {
@@ -98,6 +100,80 @@ int read_user_info() {
 			/*not right format*/
 			continue;
 		}
+	}
+	return 0;
+}
+/*read available.txt file
+ *rv: 0 for success, 2 for fail
+ * */
+int read_available_info() {
+	FILE *fp;
+	char line[LINELEN];
+	char *sp;
+	char *ep;
+
+	fp = fopen("available.txt","r");
+	if(fp == NULL) {
+		fprintf(stderr, "center: cannot read available.txt\n");
+		return 2;
+	}
+
+	num_slot = 0;
+	while(fgets(line, sizeof(line), fp)) {
+		memset(&time_slot[num_slot], 0, sizeof time_slot[num_user]);
+		/*record index*/
+		sp = line;
+		ep = strchr(sp,' ');
+		if(ep != NULL) {
+			*ep = '\0';
+		} else {
+			fprintf(stderr, "center: wrong available.txt file fomat\n");
+			return 2;
+		}
+		time_slot[num_slot].index = atoi(sp);
+		/*record day*/
+		sp = ep+1;
+		ep = strchr(sp,' ');
+		if(ep != NULL) {
+			*ep = '\0';
+		} else {
+			fprintf(stderr, "center: wrong available.txt file fomat\n");
+			return 2;
+		}
+		strncpy(time_slot[num_slot].day, sp, sizeof time_slot[num_slot].day);
+		/*record time*/
+		sp = ep+1;
+		ep = strchr(sp,' ');
+		if(ep != NULL) {
+			*ep = '\0';
+		} else {
+			fprintf(stderr, "center: wrong available.txt file fomat\n");
+			return 2;
+		}
+		strncpy(time_slot[num_slot].time, sp, sizeof time_slot[num_slot].time);
+		/*record doc*/
+		sp = ep+1;
+		ep = strchr(sp,' ');
+		if(ep != NULL) {
+			*ep = '\0';
+		} else {
+			fprintf(stderr, "center: wrong available.txt file fomat\n");
+			return 2;
+		}
+		strncpy(time_slot[num_slot].doc, sp, sizeof time_slot[num_slot].doc);
+		/*record port*/
+		sp = ep+1;
+		ep = strchr(sp,'\n');
+		if(ep != NULL) {
+			*ep = '\0';
+		} else {
+			fprintf(stderr, "center: wrong available.txt file fomat\n");
+			return 2;
+		}
+		time_slot[num_slot].port = atoi(sp);
+
+		/*for next line*/
+		num_slot++;
 	}
 	return 0;
 }

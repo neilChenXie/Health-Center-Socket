@@ -71,7 +71,7 @@ int read_patient_info() {
 int create_connect_socket() {
 	struct addrinfo hints, *serinfo;
 	int rv;
-	char s[INET6_ADDRSTRLEN];
+	//char s[INET6_ADDRSTRLEN];
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -98,8 +98,8 @@ int create_connect_socket() {
 		return 2;
 	}
 
-	inet_ntop(serinfo->ai_family, get_in_addr((struct sockaddr *)serinfo->ai_addr), s, sizeof s);
-	printf("patient: connecting to %s\n", s);
+	//inet_ntop(serinfo->ai_family, get_in_addr((struct sockaddr *)serinfo->ai_addr), s, sizeof s);
+	//printf("patient: connecting to %s\n", s);
 
 	freeaddrinfo(serinfo);
 
@@ -122,7 +122,7 @@ int recv_msg(char *buf) {
 }
 /*
  *send msg
- * */
+et * */
 int send_msg(char *buf, int num_bytes) {
 
 	printf("I will send %d bytes to center.\n", num_bytes);
