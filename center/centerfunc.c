@@ -19,6 +19,7 @@ uname user[MAXUSER];
 upass pass[MAXUSER];
 available_t time_slot[MAXSLOT];
 int new_fd;
+send_available_t avai_msg;
 
 /**********************private functions*****************************/
 /*
@@ -30,6 +31,20 @@ void *get_in_addr(struct sockaddr *sa) {
 	} else {
 		return &(((struct sockaddr_in6*)sa)->sin6_addr);
 	}
+}
+/*
+ *check bytes
+ * */
+void check_packet(char *buf) {
+	uint8_t che[LINELEN];
+	int i;
+
+	memcpy(che, buf, LINELEN);
+	printf("the packet is:\n");
+	for(i = 0; i < LINELEN; i++) {
+		printf("%02X",che[i]);
+	}
+	printf("\n");
 }
 /**********************public functions******************************/
 /*
@@ -250,6 +265,7 @@ int recv_msg(char *buf) {
  * */
 int send_msg(char *buf, int num_bytes) {
 
+	//check_packet(buf);
 	if(send(new_fd, buf, num_bytes, 0) == -1) {
 		perror("center:send");
 		return 2;
@@ -300,4 +316,39 @@ int authen(char *buf) {
 		}
 	}
 	return 1;
+}
+
+/*create avai_msg packet*/
+int create_avai_msg(send_available_t *avai_msg) {
+	int i;
+	avai_msg->num_slot = num_slot;
+	for(i = 0;i < num_slot; i++) {
+		avai_msg->one_avai[i].index = time_slot[i].index;
+		strncpy(avai_msg->one_avai[i].day, time_slot[i].day,strlen(time_slot[i].day));
+		strncpy(avai_msg->one_avai[i].time, time_slot[i].time,strlen(time_slot[i].time));
+	}
+	return 0;
+}
+
+/*get selection
+ *rv: num of selection -1 for failure
+ * */
+int get_selection(char *buf) {
+	int res;
+	char *sp;
+	
+	if(strstr(buf,"selection") != NULL) {
+		sp = strchr(buf, ' ');
+		if(sp != NULL) {
+			sp++;
+			res = atoi(sp);
+			return res;
+		} else {
+			fprintf(stderr, "the selection msg is in wrong format\n");
+			return -1;
+		}
+	} else {
+		fprintf(stderr, "this infomation is not for selection\n");
+		return -1;
+	}
 }

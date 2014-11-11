@@ -26,8 +26,11 @@ extern char upass[UPASSLEN];
 extern char buf_send[LINELEN];
 extern char buf_recv[LINELEN];
 extern int num_slot;
+extern int user_sel;
 
 int read_patient_info();
 int create_connect_socket();
+int read_patient_select();
 int send_msg(char *buf, int num_bytes);
 int recv_msg(char *buf);
+int check_res_sel(char *buf);

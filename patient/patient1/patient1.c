@@ -63,6 +63,8 @@ int main(int argc, char *argv[]) {
 	recv_msg(buf_recv);
 	avai_msg = (send_available_t *) buf_recv;
 
+	//check_packet((char *)avai_msg);
+
 	/**show available**/
 	int i;
 	for(i = 0; i < avai_msg->num_slot; i++) {
@@ -70,10 +72,38 @@ int main(int argc, char *argv[]) {
 	}
 
 	/*wait to stdin*/
+	while(1) {
+		printf("please enter your choice: ");
+		if(read_patient_select() == -1) {
+			continue;
+		} else {
+			int flag = 0;
+			for(i = 0; i < avai_msg->num_slot; i++) {
+				if(avai_msg->one_avai[i].index == user_sel) {
+					flag = 1;
+					break;
+				}
+			}
+			if(flag == 1) {
+				break;
+			}
+		}
+	}
 
 	/*send index to center*/
-	/*che result*/
-	/*failure back to send req*/
+	memset(buf_send, 0, sizeof buf_send);
+	sprintf(buf_send, "selection %d", user_sel);
+	send_msg(buf_send, strlen(buf_send));
+	/*get result*/
+	memset(buf_recv, 0, sizeof buf_recv);
+	recv_msg(buf_recv);
+	close(p_sockfd);
+	/*check*/
+	rv = check_res_sel(buf_recv);
+	if(rv == -1) {
+		exit(0);
+	}
+	printf("the port number of doctor is:%d\n", rv);
 	/*suc to phase3*/
 	/*send avaliable*/
 	return 0;

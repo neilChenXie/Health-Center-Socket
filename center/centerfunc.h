@@ -2,7 +2,7 @@
 #define BACKLOG 10 //pending connections queue will hold
 #define UNAMELEN 20
 #define UPASSLEN 20
-#define LINELEN 100
+#define LINELEN 1000
 #define MAXUSER 10
 #define MAXSLOT 10
 
@@ -18,6 +18,7 @@ typedef struct {
 	char time[5];
 	char doc[5];
 	int port;
+	int use_flag;
 }available_t;
 typedef struct {
 	int num_slot;
@@ -35,6 +36,7 @@ extern upass pass[MAXUSER];
 extern int new_fd;
 extern char buf_recv[LINELEN];
 extern char buf_send[LINELEN];
+/*phase2*/
 extern send_available_t avai_msg;
 extern int byte_to_send;
 
@@ -51,3 +53,6 @@ int send_msg(char *buf, int num_bytes);
 /*msg check*/
 int authen(char *buf);
 int same_string(char *s1, char *s2);
+int get_selection(char *buf);
+/*create packet*/
+int create_avai_msg(send_available_t *avai_msg);

@@ -13,6 +13,7 @@
 int p_sockfd;
 char uname[UNAMELEN];
 char upass[UPASSLEN];
+int user_sel;
 /**********************private functions*****************************/
 /*
  *get_in_addr
@@ -25,6 +26,20 @@ void *get_in_addr(struct sockaddr *sa) {
 	}
 }
 
+/*
+ *check bytes
+ * */
+void check_packet(char *buf) {
+	uint8_t che[LINELEN];
+	int i;
+
+	memcpy(che, buf, LINELEN);
+	printf("the packet is:\n");
+	for(i = 0; i < LINELEN; i++) {
+		printf("%02X",che[i]);
+	}
+	printf("\n");
+}
 /**********************public functions******************************/
 /*
  *read patient file
@@ -63,6 +78,21 @@ int read_patient_info() {
 		sprintf(upass, "%s", pp);
 	}
 	return 0;
+}
+/*read stdin
+ *rv: -1 for error
+ * */
+int read_patient_select() {
+	char line[LINELEN];
+	if(fgets(line, LINELEN, stdin)) {
+		//printf("my select is:%s\n", line);
+		user_sel = atoi(line);
+		return user_sel;
+	} else {
+		printf("no input at all\n");
+		return -1;
+	}
+	return -1;
 }
 /*
  *create socket
@@ -116,7 +146,7 @@ int recv_msg(char *buf) {
 		perror("center:recv");
 		return 2;
 	}
-
+	//check_packet(buf);
 	buf[num_bytes] = '\0';
 	return 0;
 }
@@ -125,10 +155,34 @@ int recv_msg(char *buf) {
 et * */
 int send_msg(char *buf, int num_bytes) {
 
-	printf("I will send %d bytes to center.\n", num_bytes);
 	if(send(p_sockfd, buf, num_bytes, 0) == -1) {
 		perror("center:send");
 		return 2;
 	}
 	return 0;
+}
+/*
+ *check_res_sel
+ rv: port for suc, -1 for failure
+ * */
+int check_res_sel(char *buf) {
+	char *sp;
+	int res;
+	if(strstr(buf, "doc") != NULL) {
+		sp = strchr(buf, ' ');
+		if(sp != NULL) {
+			sp++;
+			res = atoi(sp);
+			return res;
+		} else {
+			fprintf(stderr, "wrong fomat\n");
+			return -1;
+		}
+	} else if(strstr(buf, "nonavailable") != NULL) {
+		fprintf(stderr, "not available\n");
+		return -1;
+	} else {
+		fprintf(stderr, "not reply for selection");
+		return -1;
+	}
 }

@@ -15,7 +15,6 @@
 char buf_recv[LINELEN];
 char buf_send[LINELEN];
 int byte_to_send;
-send_available_t avai_msg;
 
 int main(int argc, char *argv[]) {
 	int rv;
@@ -123,29 +122,46 @@ int main(int argc, char *argv[]) {
 			if(rv == 0) {
 				printf("ready to send available msg to patient\n");
 				/*send available infomation to patient*/
+
 				/*create msg*/
-				int i;
 				memset(&avai_msg, 0, sizeof avai_msg);
-				avai_msg.num_slot = num_slot;
-				for(i = 0;i < num_slot; i++) {
-					avai_msg.one_avai[i].index = time_slot[i].index;
-					strncpy(avai_msg.one_avai[i].day, time_slot[i].day,strlen(time_slot[i].day)+1);
-					strncpy(avai_msg.one_avai[i].time, time_slot[i].time,strlen(time_slot[i].time)+1);
-					printf("I'm sending: index:%d, day: %s, time: %s\n",avai_msg.one_avai[i].index, avai_msg.one_avai[i].day, avai_msg.one_avai[i].time);
+
+				rv = create_avai_msg(&avai_msg);
+				if(rv == 2) {
+					exit(1);
 				}
 
 				/*send to patient*/
 				send_msg((char *)&avai_msg, sizeof avai_msg);
 
-				/*check the available file again*/
-				/*mark the rev in the file & close imm*/
-				/*send not ava now msg*/
-				/*loop back*/
+				/*wait for client*/
+				memset(buf_recv, 0, sizeof buf_recv);
+				recv_msg(buf_recv);
+				rv = get_selection(buf_recv);
+				if(rv == -1) {
+					exit(1);
+				}
+				printf("the selection of patient is: %d\n",rv);
+				/*check rv whether available*/
+				if(time_slot[rv].use_flag == 0) {
+					/*set 1*/
+					time_slot[rv].use_flag = 1;
+					/*send available to patient*/
+					memset(buf_send, 0, sizeof buf_send);
+					sprintf(buf_send,"%s %d", time_slot[rv].doc, time_slot[rv].port);
+					send_msg(buf_send, strlen(buf_send));
+				} else {
+					/*send not available to patient*/
+					memset(buf_send, 0, sizeof buf_send);
+					sprintf(buf_send, "notavailable");
+					send_msg(buf_send, strlen(buf_send));
+				}
+				close(new_fd);
 			} else {
 				printf("center: received wrong request for available information\n");
+				close(new_fd);
 				exit(1);
 			}
-			close(new_fd);
 			exit(0);
 		}
 		/**************************************/
